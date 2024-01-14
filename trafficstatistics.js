@@ -54,7 +54,12 @@ function processTrafficData(data) {
         console.log("数据格式不正确，缺少必要的字段");
         return;
     }
-
+    /* 手动执行时切换网络界面 */
+    if($trigger == "button"){
+	    if(allNet.length>1) index += 1
+        if(index>=allNet.length) index = 0;
+	    $persistentStore.write(allNet[index],"NETWORK")
+    };
     let interfaceData = data.interface;
     let allNet = Object.keys(interfaceData);
     allNet = del(allNet, "lo0");
@@ -74,9 +79,9 @@ function processTrafficData(data) {
 
   $done({
       title:"流量统计 | "+netType,
-      content:`流量 ➟ ${upload} | ${download}\n`+
-      `速度 ➟ ${outCurrentSpeed} | ${inCurrentSpeed}\n` +
-		`峰值 ➟ ${outMaxSpeed} | ${inMaxSpeed}`,
+      content:`总计流量 ➟ ${upload} | ${download}\n`+
+      `当前网速 ➟ ${outCurrentSpeed} | ${inCurrentSpeed}\n` +
+		`峰值网速 ➟ ${outMaxSpeed} | ${inMaxSpeed}`,
 		icon: params.icon,
 		  "icon-color":params.color
     });
