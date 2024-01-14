@@ -111,6 +111,3 @@ function del(arr,num) {
 		}}
 
 // 停止定时器的函数（如有需要）
-function stopUpdate() {
-    clearInterval(updateInterval);
-}
