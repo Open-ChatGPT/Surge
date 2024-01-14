@@ -54,22 +54,27 @@ function processTrafficData(data) {
         console.log("数据格式不正确，缺少必要的字段");
         return;
     }
-    /* 手动执行时切换网络界面 */
-    if($trigger == "button"){
-	    if(allNet.length>1) index += 1
-        if(index>=allNet.length) index = 0;
-	    $persistentStore.write(allNet[index],"NETWORK")
-    };
+
     let interfaceData = data.interface;
     let allNet = Object.keys(interfaceData);
     allNet = del(allNet, "lo0");
+
+    let index = 0;
     let net = $persistentStore.read("NETWORK");
-    if (!net || !allNet.includes(net)) {
-        net = allNet[0];
+    if (net && allNet.includes(net)) {
+        index = allNet.indexOf(net);
+    }
+
+    /* 手动执行时切换网络界面 */
+    if($trigger == "button"){
+        if(allNet.length > 1) index += 1;
+        if(index >= allNet.length) index = 0;
+        $persistentStore.write(allNet[index], "NETWORK");
+        net = allNet[index];
     }
 
     let network = interfaceData[net];
-    let netType = net === "en0" ? "WiFi"  :  "Cellular";
+    let netType = net === "en0" ? "WiFi" : "Cellular";
     let outCurrentSpeed = speedTransform(network.outCurrentSpeed);
     let outMaxSpeed = speedTransform(network.outMaxSpeed);
     let download = bytesToSize(network.in);
@@ -77,21 +82,22 @@ function processTrafficData(data) {
     let inMaxSpeed = speedTransform(network.inMaxSpeed);
     let inCurrentSpeed = speedTransform(network.inCurrentSpeed);
 
-  $done({
-      title:"流量统计 | "+netType,
-      content:`总计流量 ➟ ${upload} | ${download}\n`+
-      `当前网速 ➟ ${outCurrentSpeed} | ${inCurrentSpeed}\n` +
-		`峰值网速 ➟ ${outMaxSpeed} | ${inMaxSpeed}`,
-		icon: params.icon,
-		  "icon-color":params.color
+    $done({
+        title: "流量统计 | " + netType,
+        content: `总计流量 ➟ ${upload} | ${download}\n` +
+        `当前网速 ➟ ${outCurrentSpeed} | ${inCurrentSpeed}\n` +
+        `峰值网速 ➟ ${outMaxSpeed} | ${inMaxSpeed}`,
+        icon: params.icon,
+        "icon-color": params.color
     });
+
     console.log(`----------------------------------`);
     console.log("网络类型 ➟ " + netType);
     console.log(`上行流量 ➟ ${upload}`);
     console.log(`下行流量 ➟ ${download}`);
     console.log(`当前速度 ➟ ${outCurrentSpeed} / ${inCurrentSpeed}`);
     console.log(`峰值网速 ➟ ${outMaxSpeed} | ${inMaxSpeed}`);
-    
+
     printNetworkInfo("接口信息：", data.interface);
     printNetworkInfo("连接信息：", data.connector);
 }
