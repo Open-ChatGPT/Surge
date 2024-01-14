@@ -1,19 +1,11 @@
 let params = getParams($argument);
-let updateInterval;
 
 (async () => {
-    // 初始执行一次更新
-    await updateNetworkInfo();
 
-    // 每隔一定时间（比如5秒）刷新网络信息
-    updateInterval = setInterval(updateNetworkInfo, 5000);
-})();
-
-async function updateNetworkInfo() {
     let traffic = (await httpAPI("/v1/traffic"));
     let interface = traffic.interface;
 
-    // 获取所有网络界面
+    /* 获取所有网络界面 */
     let allNet = [];
     for (var key in interface) {
         allNet.push(key);
@@ -23,12 +15,11 @@ async function updateNetworkInfo() {
         del(allNet, "lo0");
     }
 
-    let net;
-    let index;
-    if ($persistentStore.read("NETWORK") == null || allNet.includes($persistentStore.read("NETWORK")) == false) {
+    let index = 0;
+    if ($persistentStore.read("NETWORK") == null || !allNet.includes($persistentStore.read("NETWORK"))) {
         index = 0;
     } else {
-        net = $persistentStore.read("NETWORK");
+        let net = $persistentStore.read("NETWORK");
         for (let i = 0; i < allNet.length; ++i) {
             if (net == allNet[i]) {
                 index = i;
@@ -36,40 +27,41 @@ async function updateNetworkInfo() {
         }
     }
 
-    // 手动执行时切换网络界面
-    if ($trigger == "button") {
-        if (allNet.length > 1) index += 1;
-        if (index >= allNet.length) index = 0;
-        $persistentStore.write(allNet[index], "NETWORK");
-    };
+    // 每隔1秒自动切换网络界面
+    setInterval(() => {
+        if (allNet.length > 1) {
+            index = (index + 1) % allNet.length;
+            $persistentStore.write(allNet[index], "NETWORK");
+            updateNetworkInfo(allNet[index], interface);
+        }
+    }, 1000);
 
-    net = allNet[index];
+})()
+
+function updateNetworkInfo(net, interface) {
     let network = interface[net];
 
-    let outCurrentSpeed = speedTransform(network.outCurrentSpeed); //上传速度
-    let outMaxSpeed = speedTransform(network.outMaxSpeed); //最大上传速度
-    let download = bytesToSize(network.in); //下载流量
-    let upload = bytesToSize(network.out); //上传流量
-    let inMaxSpeed = speedTransform(network.inMaxSpeed); //最大下载速度
-    let inCurrentSpeed = speedTransform(network.inCurrentSpeed); //下载速度
+    let outCurrentSpeed = speedTransform(network.outCurrentSpeed); // 上传速度
+    let outMaxSpeed = speedTransform(network.outMaxSpeed); // 最大上传速度
+    let download = bytesToSize(network.in); // 下载流量
+    let upload = bytesToSize(network.out); // 上传流量
+    let inMaxSpeed = speedTransform(network.inMaxSpeed); // 最大下载速度
+    let inCurrentSpeed = speedTransform(network.inCurrentSpeed); // 下载速度
 
-    // 判断网络类型
-    let netType;
-    if (net == "en0") {
-        netType = "WiFi";
-    } else {
-        netType = "Cellular";
-    }
+    /* 判断网络类型 */
+    let netType = net == "en0" ? "WiFi" : "Cellular";
 
     $done({
         title: "流量统计 | " + netType,
         content: `流量 ➟ ${upload} | ${download}\n` +
-        `速度 ➟ ${outCurrentSpeed} | ${inCurrentSpeed}\n` +
-        `峰值 ➟ ${outMaxSpeed} | ${inMaxSpeed}`,
+                 `速度 ➟ ${outCurrentSpeed} | ${inCurrentSpeed}\n` +
+                 `峰值 ➟ ${outMaxSpeed} | ${inMaxSpeed}`,
         icon: params.icon,
         "icon-color": params.color
     });
 }
+
+// 剩余辅助函数定义...
 
 function bytesToSize(bytes) {
   if (bytes === 0) return "0B";
